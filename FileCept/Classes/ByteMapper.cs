@@ -1,103 +1,119 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace FileCept.Classes
 {
     public class ByteMapper
     {
-        private string dirSource;
-        private string dirDestination;
-        public List<string> byteFiles = new List<string>();
-        public List<byte[]> byteStarts = new List<byte[]>();
-        public List<byte[]> byteEnds = new List<byte[]>();
-        public List<string> byteExtensions = new List<string>();
+        private string DirectorySource;
+        private string DirectoryDestination;
+        public List<string> Files = new List<string>();
+        public List<ByteEntry> Entries = new List<ByteEntry>();
 
         public ByteMapper(string source, string destination)
         {
-            dirSource = source;
-            dirDestination = destination;
-            string[] fileEntries = Directory.GetFiles(dirSource, "*", SearchOption.AllDirectories);
+            DirectorySource = source;
+            DirectoryDestination = destination;
+            string[] fileEntries = Directory.GetFiles(DirectorySource, "*", SearchOption.AllDirectories);
             foreach(string entry in fileEntries)
             {
-                byteFiles.Add(entry);
+                Files.Add(entry);
             }
         }
 
         public void Start(BackgroundWorker worker)
         {
             worker.DoWork += DoWork;
+            worker.WorkerReportsProgress = true;
+            worker.WorkerSupportsCancellation = true;
             worker.RunWorkerAsync();
         }
 
         public void DoWork(object sender, DoWorkEventArgs e)
         {
-            if (!Directory.Exists(dirDestination))
+            var worker = (BackgroundWorker)sender;
+            int fileNumber = 0;
+            foreach (string file in Files)
             {
-                Directory.CreateDirectory(dirDestination);
-            }
-            foreach(string file in byteFiles)
-            {
+                int fileCounter = 0;
+                FileInfo fileInfo = new FileInfo(file);
                 using(FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
                 {
                     int indexStart = -1;
                     int indexEnd = -1;
                     do
                     {
-                        indexStart = FindNextPattern(fileStream, byteStarts, true);
-                        indexEnd = FindNextPattern(fileStream, byteEnds, false);
+                        if (worker.CancellationPending)
+                        {
+                            return;
+                        }
+                        indexStart = FindFirstPattern(fileStream);
+                        indexEnd = FindLastPattern(fileStream);
                         if (indexStart != -1 && indexEnd != -1)
                         {
                             byte[] bytes = new byte[indexEnd - indexStart];
                             fileStream.Seek(indexStart, SeekOrigin.Begin);
                             fileStream.Read(bytes, 0, bytes.Length);
                             fileStream.Seek(indexEnd, SeekOrigin.Begin);
-                            File.WriteAllBytes(dirDestination + Guid.NewGuid().ToString("N") + ".png", bytes);
+                            File.WriteAllBytes(DirectoryDestination + fileInfo.Name.Replace(".", "_") + "_" + fileCounter.ToString() + ".png", bytes);
+                            fileCounter++;
                         }
                     }
                     while (indexStart != -1 && indexEnd != -1);
                 }
+                fileNumber++;
+                worker.ReportProgress((int)(((double)fileNumber/(double)Files.Count) * 100));
+                Thread.Sleep(1);
             }
         }
 
-        public void AddPattern(string start, string end)
-        {
-            string[] tokenStarts = start.Split(" ");
-            string[] tokenEnds = end.Split(" ");
-            byte[] tempStarts = new byte[tokenStarts.Length];
-            byte[] tempEnds = new byte[tokenEnds.Length];
-
-            for(int a = 0; a < tokenStarts.Length; a++)
-            {
-                tempStarts[a] = Convert.ToByte(tokenStarts[a], 16);
-            }
-            for(int a = 0; a < tokenEnds.Length; a++)
-            {
-                tempEnds[a] = Convert.ToByte(tokenEnds[a], 16);
-            }
-
-            byteStarts.Add(tempStarts);
-            byteEnds.Add(tempEnds);
-        }
-
-        private int FindNextPattern(FileStream fileStream, List<byte[]> listStarts, bool offset)
+        private int FindFirstPattern(FileStream fileStream)
         {
             int byteValue = -1;
             do
             {
                 byteValue = fileStream.ReadByte();
-                for(int a = 0; a < listStarts.Count; a++)
+                for(int a = 0; a < Entries.Count; a++)
                 {
-                    for(int b = 0; b < listStarts[a].Length; b++)
+                    for(int b = 0; b < Entries[a].Start.Length; b++)
                     {
-                        if(byteValue == listStarts[a][b])
+                        if(byteValue == Entries[a].Start[b])
                         {
-                            if(b == listStarts[a].Length - 1)
+                            if(b == Entries[a].Start.Length - 1)
                             {
-                                return (int)fileStream.Position - ((offset == true) ? byteStarts[a].Length : 0);
+                                return (int)fileStream.Position - Entries[a].Start.Length;
+                            }
+                            else
+                            {
+                                byteValue = fileStream.ReadByte();
+                            }
+                        }
+                        else
+                        {
+                            fileStream.Seek(-b, SeekOrigin.Current);
+                            break;
+                        }
+                    }
+                }
+            }
+            while ((byteValue != -1) && (Entries.Count > 0));
+            return -1;
+        }
+
+        private int FindLastPattern(FileStream fileStream)
+        {
+            int byteValue = -1;
+            do
+            {
+                byteValue = fileStream.ReadByte();
+                for (int a = 0; a < Entries.Count; a++)
+                {
+                    for (int b = 0; b < Entries[a].End.Length; b++)
+                    {
+                        if (byteValue == Entries[a].End[b])
+                        {
+                            if (b == Entries[a].End.Length - 1)
+                            {
+                                return (int)fileStream.Position;
                             }
                             else
                             {
@@ -111,7 +127,7 @@ namespace FileCept.Classes
                     }
                 }
             }
-            while ((byteValue != -1) && (listStarts.Count > 0));
+            while ((byteValue != -1) && (Entries.Count > 0));
             return -1;
         }
 
