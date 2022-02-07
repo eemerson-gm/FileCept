@@ -39,11 +39,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.labelStatus = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
-            this.Type = new System.Windows.Forms.ColumnHeader();
-            this.Extension = new System.Windows.Forms.ColumnHeader();
-            this.listViewEntires = new System.Windows.Forms.ListView();
-            this.Start = new System.Windows.Forms.ColumnHeader();
-            this.End = new System.Windows.Forms.ColumnHeader();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.buttonAdd = new System.Windows.Forms.Button();
             this.textBoxEnd = new System.Windows.Forms.TextBox();
@@ -54,6 +49,11 @@
             this.textBoxName = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
+            this.Type = new System.Windows.Forms.ColumnHeader();
+            this.Extension = new System.Windows.Forms.ColumnHeader();
+            this.Start = new System.Windows.Forms.ColumnHeader();
+            this.End = new System.Windows.Forms.ColumnHeader();
+            this.listViewEntires = new System.Windows.Forms.ListView();
             this.toolStrip1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -151,44 +151,10 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.buttonCancel_Click);
             // 
-            // Type
-            // 
-            this.Type.Text = "Type";
-            this.Type.Width = 120;
-            // 
-            // Extension
-            // 
-            this.Extension.Text = "Extension";
-            this.Extension.Width = 120;
-            // 
-            // listViewEntires
-            // 
-            this.listViewEntires.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.listViewEntires.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.Type,
-            this.Extension,
-            this.Start,
-            this.End});
-            this.listViewEntires.Location = new System.Drawing.Point(12, 28);
-            this.listViewEntires.Name = "listViewEntires";
-            this.listViewEntires.Size = new System.Drawing.Size(560, 168);
-            this.listViewEntires.TabIndex = 1;
-            this.listViewEntires.UseCompatibleStateImageBehavior = false;
-            // 
-            // Start
-            // 
-            this.Start.Text = "Start Bytes";
-            this.Start.Width = 120;
-            // 
-            // End
-            // 
-            this.End.Text = "End Bytes";
-            this.End.Width = 120;
-            // 
             // groupBox1
             // 
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.Controls.Add(this.buttonAdd);
             this.groupBox1.Controls.Add(this.textBoxEnd);
             this.groupBox1.Controls.Add(this.label5);
@@ -207,6 +173,7 @@
             // 
             // buttonAdd
             // 
+            this.buttonAdd.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.buttonAdd.Location = new System.Drawing.Point(479, 78);
             this.buttonAdd.Name = "buttonAdd";
             this.buttonAdd.Size = new System.Drawing.Size(75, 23);
@@ -217,6 +184,7 @@
             // 
             // textBoxEnd
             // 
+            this.textBoxEnd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxEnd.Location = new System.Drawing.Point(112, 79);
             this.textBoxEnd.Name = "textBoxEnd";
             this.textBoxEnd.Size = new System.Drawing.Size(361, 23);
@@ -242,6 +210,7 @@
             // 
             // textBoxStart
             // 
+            this.textBoxStart.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.textBoxStart.Location = new System.Drawing.Point(112, 37);
             this.textBoxStart.Name = "textBoxStart";
             this.textBoxStart.Size = new System.Drawing.Size(361, 23);
@@ -279,6 +248,42 @@
             this.label2.TabIndex = 0;
             this.label2.Text = "Group Name";
             // 
+            // Type
+            // 
+            this.Type.Text = "Type";
+            this.Type.Width = 120;
+            // 
+            // Extension
+            // 
+            this.Extension.Text = "Extension";
+            this.Extension.Width = 120;
+            // 
+            // Start
+            // 
+            this.Start.Text = "Start Bytes";
+            this.Start.Width = 120;
+            // 
+            // End
+            // 
+            this.End.Text = "End Bytes";
+            this.End.Width = 120;
+            // 
+            // listViewEntires
+            // 
+            this.listViewEntires.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.listViewEntires.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.Type,
+            this.Extension,
+            this.Start,
+            this.End});
+            this.listViewEntires.Location = new System.Drawing.Point(12, 28);
+            this.listViewEntires.Name = "listViewEntires";
+            this.listViewEntires.Size = new System.Drawing.Size(560, 168);
+            this.listViewEntires.TabIndex = 1;
+            this.listViewEntires.UseCompatibleStateImageBehavior = false;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -308,15 +313,12 @@
         private ToolStripDropDownButton toolStripDropDownButton1;
         private ToolStripMenuItem openToolStripMenuItem;
         private ToolStripMenuItem exitToolStripMenuItem;
-        private ListView listViewEntires;
         private ProgressBar progressBar;
         private ToolStripButton toolStripButton1;
         private ToolStripMenuItem viewToolStripMenuItem;
         private Label label1;
         private Label labelStatus;
         private Button button1;
-        private ColumnHeader Type;
-        private ColumnHeader Extension;
         private GroupBox groupBox1;
         private Button button2;
         private TextBox textBoxEnd;
@@ -330,7 +332,10 @@
         private TextBox textBoxName;
         private TextBox textBoxExtension;
         private Button buttonAdd;
+        private ColumnHeader Type;
+        private ColumnHeader Extension;
         private ColumnHeader Start;
         private ColumnHeader End;
+        private ListView listViewEntires;
     }
 }

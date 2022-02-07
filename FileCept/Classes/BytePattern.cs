@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace FileCept.Classes
 {
-    public class ByteEntry
+    public class BytePattern
     {
         public byte[] Start { get; set; }
         public byte[] End { get; set; }
         public string Type { get; set; }
         public string Extension { get; set; }
 
-        public ByteEntry(string start, string end, string type, string extension)
+        public BytePattern(string start, string end, string type, string extension)
         {
             Start = StringToByteArray(start);
             End = StringToByteArray(end);

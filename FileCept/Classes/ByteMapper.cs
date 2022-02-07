@@ -4,41 +4,73 @@ namespace FileCept.Classes
 {
     public class ByteMapper
     {
-        private string DirectorySource;
-        private string DirectoryDestination;
-        public List<string> Files = new List<string>();
-        public List<ByteEntry> Entries = new List<ByteEntry>();
+
+        private ulong ByteIndex;
+        private ulong ByteSize;
+        public List<string> Files;
+        public List<BytePattern> Patterns;
+
+        private string SourceDirectory;
+        private string DestinationDirectory;
+        private BackgroundWorker ByteWorker;
+        private volatile bool IsWorking;
 
         public ByteMapper(string source, string destination)
         {
-            DirectorySource = source;
-            DirectoryDestination = destination;
-            string[] fileEntries = Directory.GetFiles(DirectorySource, "*", SearchOption.AllDirectories);
+
+            SourceDirectory = source;
+            DestinationDirectory = destination;
+            Files = new List<string>();
+            Patterns = new List<BytePattern>();
+
+            string[] fileEntries = Directory.GetFiles(SourceDirectory, "*", SearchOption.AllDirectories);
+
+            ByteIndex = 0;
+            ByteSize = 0;
+            IsWorking = false;
+
             foreach(string entry in fileEntries)
             {
+                FileInfo fileInfo = new FileInfo(entry);
+                ByteSize += (ulong)fileInfo.Length;
                 Files.Add(entry);
             }
+
         }
 
         public void Start(BackgroundWorker worker)
         {
-            worker.DoWork += DoWork;
-            worker.WorkerReportsProgress = true;
-            worker.WorkerSupportsCancellation = true;
-            worker.RunWorkerAsync();
+            IsWorking = true;
+            ByteWorker = worker;
+            ByteWorker.DoWork += DoWork;
+            ByteWorker.WorkerReportsProgress = true;
+            ByteWorker.WorkerSupportsCancellation = true;
+            ByteWorker.RunWorkerAsync();
+
+            Thread reportThread = new Thread(DoReport);
+            reportThread.Start();
         }
 
-        public void DoWork(object sender, DoWorkEventArgs e)
+        private void DoReport()
+        {
+            while (IsWorking)
+            {
+                int percent = (int)(((double)ByteIndex / (double)ByteSize) * 100);
+                ByteWorker.ReportProgress(percent);
+                Thread.Sleep(1000);
+            }
+        }
+
+        private void DoWork(object sender, DoWorkEventArgs e)
         {
             var worker = (BackgroundWorker)sender;
-            int fileNumber = 0;
             foreach (string file in Files)
             {
                 int fileCounter = 0;
                 FileInfo fileInfo = new FileInfo(file);
                 using(FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
                 {
-                    int indexStart = -1;
+                    ByteIndex? indexStart = null;
                     int indexEnd = -1;
                     do
                     {
@@ -46,78 +78,83 @@ namespace FileCept.Classes
                         {
                             return;
                         }
-                        indexStart = FindFirstPattern(fileStream);
-                        indexEnd = FindLastPattern(fileStream);
-                        if (indexStart != -1 && indexEnd != -1)
+                        indexStart = FindFirstPattern(fileStream, worker);
+                        indexEnd = FindLastPattern(fileStream, worker);
+                        if (indexStart != null && indexEnd != -1)
                         {
-                            byte[] bytes = new byte[indexEnd - indexStart];
-                            fileStream.Seek(indexStart, SeekOrigin.Begin);
+                            byte[] bytes = new byte[indexEnd - indexStart.Index];
+                            fileStream.Seek(indexStart.Index, SeekOrigin.Begin);
                             fileStream.Read(bytes, 0, bytes.Length);
                             fileStream.Seek(indexEnd, SeekOrigin.Begin);
-                            File.WriteAllBytes(DirectoryDestination + fileInfo.Name.Replace(".", "_") + "_" + fileCounter.ToString() + ".png", bytes);
+                            File.WriteAllBytes(DestinationDirectory + fileInfo.Name.Replace(".", "_") + "_" + fileCounter.ToString() + indexStart.Extension, bytes);
                             fileCounter++;
                         }
                     }
-                    while (indexStart != -1 && indexEnd != -1);
+                    while (indexStart != null && indexEnd != -1);
                 }
-                fileNumber++;
-                worker.ReportProgress((int)(((double)fileNumber/(double)Files.Count) * 100));
-                Thread.Sleep(1);
             }
+            IsWorking = false;
+            ByteWorker.ReportProgress(100);
         }
 
-        private int FindFirstPattern(FileStream fileStream)
+        private ByteIndex? FindFirstPattern(FileStream fileStream, BackgroundWorker worker)
         {
             int byteValue = -1;
             do
             {
                 byteValue = fileStream.ReadByte();
-                for(int a = 0; a < Entries.Count; a++)
+                ByteIndex += 1;
+                for (int a = 0; a < Patterns.Count; a++)
                 {
-                    for(int b = 0; b < Entries[a].Start.Length; b++)
+                    for(int b = 0; b < Patterns[a].Start.Length; b++)
                     {
-                        if(byteValue == Entries[a].Start[b])
+                        if(byteValue == Patterns[a].Start[b])
                         {
-                            if(b == Entries[a].Start.Length - 1)
+                            if(b == Patterns[a].Start.Length - 1)
                             {
-                                return (int)fileStream.Position - Entries[a].Start.Length;
+                                var byteIndex = new ByteIndex((int)fileStream.Position - Patterns[a].Start.Length, Patterns[a].Extension);
+                                return byteIndex;
                             }
                             else
                             {
                                 byteValue = fileStream.ReadByte();
+                                ByteIndex += 1;
                             }
                         }
                         else
                         {
                             fileStream.Seek(-b, SeekOrigin.Current);
+                            ByteIndex -= (ulong)b;
                             break;
                         }
                     }
                 }
             }
-            while ((byteValue != -1) && (Entries.Count > 0));
-            return -1;
+            while ((byteValue != -1) && (Patterns.Count > 0));
+            return null;
         }
 
-        private int FindLastPattern(FileStream fileStream)
+        private int FindLastPattern(FileStream fileStream, BackgroundWorker worker)
         {
             int byteValue = -1;
             do
             {
                 byteValue = fileStream.ReadByte();
-                for (int a = 0; a < Entries.Count; a++)
+                ByteIndex += 1;
+                for (int a = 0; a < Patterns.Count; a++)
                 {
-                    for (int b = 0; b < Entries[a].End.Length; b++)
+                    for (int b = 0; b < Patterns[a].End.Length; b++)
                     {
-                        if (byteValue == Entries[a].End[b])
+                        if (byteValue == Patterns[a].End[b])
                         {
-                            if (b == Entries[a].End.Length - 1)
+                            if (b == Patterns[a].End.Length - 1)
                             {
                                 return (int)fileStream.Position;
                             }
                             else
                             {
                                 byteValue = fileStream.ReadByte();
+                                ByteIndex += 1;
                             }
                         }
                         else
@@ -127,7 +164,7 @@ namespace FileCept.Classes
                     }
                 }
             }
-            while ((byteValue != -1) && (Entries.Count > 0));
+            while ((byteValue != -1) && (Patterns.Count > 0));
             return -1;
         }
 
